@@ -1,3 +1,7 @@
+<p align="center">
+![SOCIFI Sponsored Data Logo](docs/SOCIFI-Sponsored-Data-logo-500px.png)
+</p>
+
 # SOCIFI Crowdsale & GIF Token contracts
 _An `ERC-20` smart contract for GIF token and crowdsale contract._
 
@@ -26,7 +30,8 @@ in most Ethereum related applications.
 
 The GIF Token also implements a Lock-Up mechanism. This locks the trading
 abilities of the token for the first 7 days after the ICO ends. After this period,
-all tokens are 100% tradable. This behavior is defined in `contracts/TimeScheduledToken.sol`. 
+all tokens are 100% tradable. This behavior is defined in
+[`contracts/TimeScheduledToken.sol`](contracts/TimeScheduledToken.sol). 
 
 ### <a name="crowdsale-ico"></a> Crowdsale (ICO)
 Crowdsale contract located in [`contracts/GifCrowdsale.sol`](contracts/GifCrowdsale.sol)
