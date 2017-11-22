@@ -1,5 +1,5 @@
 <p align="center">
-![SOCIFI Sponsored Data Logo](docs/SOCIFI-Sponsored-Data-logo-500px.png)
+    <img src="docs/SOCIFI-Sponsored-Data-logo-500px.png" alt="SOCIFI Sponsored Data Logo"> 
 </p>
 
 # SOCIFI Crowdsale & GIF Token contracts
