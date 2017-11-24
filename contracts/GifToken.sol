@@ -25,12 +25,12 @@ contract GifToken is LimitedPurchaseToken, TimeScheduledToken {
 
     /**
      * @dev Initialize the token.
-     * @param _purchasableAfterTime uint After what time the token is purchasable.
-     * @param _transferableAfterTime uint After what time the token is transferable.
+     * @param _purchasableAfterTime uint256 After what time the token is purchasable.
+     * @param _transferableAfterTime uint256 After what time the token is transferable.
      * @param _wallet address Address of the wallet to which all the invested funds will be transferred.
      * @param _rate uint256 Conversion rate between GIF Tokens and Ethereum.
      */
-    function GifToken(uint _purchasableAfterTime, uint _transferableAfterTime, address _wallet, uint256 _rate)
+    function GifToken(uint256 _purchasableAfterTime, uint256 _transferableAfterTime, address _wallet, uint256 _rate)
         TimeScheduledToken(_purchasableAfterTime, _transferableAfterTime) public {
         require(_rate > 0);
         wallet = _wallet;

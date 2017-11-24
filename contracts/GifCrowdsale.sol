@@ -53,18 +53,18 @@ contract GifCrowdsale is Pausable {
      * @param _socifi address Address of the SOCIFI Team for initial split.
      * @param _socifiOps address Address of the SOCIFI Ops for initial split.
      * @param _gifFoundation address Address of the GIF Foundation for initial split.
-     * @param _startTime uint ICO start time.
-     * @param _endTime uint ICO end time.
-     * @param _transferableAfterTime uint When the token is unfreezed for transfer.
+     * @param _startTime uint256 ICO start time.
+     * @param _endTime uint256 ICO end time.
+     * @param _transferableAfterTime uint256 When the token is unfreezed for transfer.
      * @param _wallet address Address of the wallet to which all the invested funds will be transferred.
      */
     function GifCrowdsale(
         address _socifi,
         address _socifiOps,
         address _gifFoundation,
-        uint _startTime,
-        uint _endTime,
-        uint _transferableAfterTime,
+        uint256 _startTime,
+        uint256 _endTime,
+        uint256 _transferableAfterTime,
         address _wallet
     ) Ownable() public
     {
@@ -88,27 +88,48 @@ contract GifCrowdsale is Pausable {
         doPreallocatedSplit();
     }
 
-    // fallback function can be used to buy tokens
+    /**
+     * @dev fallback function in case someone will sent ETH directly to this contract.
+     */
     function () public payable {
         buyTokens(msg.sender);
     }
 
     /**
-     * @dev This mint the tokens based on the amount provided and optional bonuses given. The ETH is forwarded to the
-     * wallet.
+     * @dev Buy the tokens based on the amount sent and optional bonuses given.
      * @param _beneficiary address Address to where the tokens shall be send to.
      */
     function buyTokens(address _beneficiary) public whenNotPaused payable {
-        require(_beneficiary != 0x0);
         require(validPurchase());
 
-        uint256 weiAmount = msg.value;
+        processTokens(_beneficiary, msg.value);
+
+        forwardFunds();
+    }
+
+    /**
+     * @dev This mint the tokens based on the amount provided and optional bonuses given.
+     * Used only by owner during the ICO when purchasing from various cryptocurrencies (BTC, LTC)
+     * @param _beneficiary address Address to where the tokens shall be send to.
+     * @param _weiAmount uint256 Amount of wei the user sent.
+     */
+    function giveTokens(address _beneficiary, uint256 _weiAmount) public onlyOwner {
+        processTokens(_beneficiary, _weiAmount);
+    }
+
+    /**
+     * @dev Processes the token give process. E.g. calculates token amount, update weiRaised variable...
+     * @param _beneficiary address Address to where the tokens shall be send to.
+     * @param _weiAmount uint256 Amount of wei the user sent.
+     */
+    function processTokens(address _beneficiary, uint256 _weiAmount) private {
+        require(_beneficiary != 0x0);
 
         // calculate token amount to be created
-        uint256 tokens = weiAmount.mul(rate);
+        uint256 tokens = _weiAmount.mul(rate);
 
         uint256 dateBonusPercent = dateBonus(now);
-        uint256 quantityBonusPercent = quantityBonus(weiAmount);
+        uint256 quantityBonusPercent = quantityBonus(_weiAmount);
         uint256 totalBonusPercent = dateBonusPercent + quantityBonusPercent;
 
         if (totalBonusPercent > 0) {
@@ -117,12 +138,10 @@ contract GifCrowdsale is Pausable {
         }
 
         // update state
-        weiRaised = weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(_weiAmount);
 
         token.mint(_beneficiary, tokens);
-        TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
-
-        forwardFunds();
+        TokenPurchase(msg.sender, _beneficiary, _weiAmount, tokens);
     }
 
     /**
@@ -165,11 +184,11 @@ contract GifCrowdsale is Pausable {
 
     /**
      * @dev Get the total bonus amount based on date.
-     * @param _time uint Time for which to calculate the bonus.
+     * @param _time uint256 Time for which to calculate the bonus.
      * @return uint256 Date bonus percentage.
      */
-    function dateBonus(uint _time) view internal returns (uint256) {
-        uint timeFromStart = _time - startTime;
+    function dateBonus(uint256 _time) view internal returns (uint256) {
+        uint256 timeFromStart = _time - startTime;
 
         if (timeFromStart <= 2 days) return 35;
         if (timeFromStart <= 5 days) return 20;

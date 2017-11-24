@@ -15,20 +15,22 @@ contract TestGifCrowdsale is GifCrowdsale {
     }
 
     function testDateBonus() public {
-        Assert.equal(dateBonus(now), uint(35), 'Date bonus for 1st second must be 35%.');
-        Assert.equal(dateBonus(now + 2 days), uint(35), 'Date bonus for 2nd day must be 35%.');
-        Assert.equal(dateBonus(now + 2 days + 1 seconds), uint(20), 'Date bonus for 2nd day 1st second must be 20%.');
-        Assert.equal(dateBonus(now + 5 days), uint(20), 'Date bonus for 5th day must be 20%.');
-        Assert.equal(dateBonus(now + 5 days + 1 seconds), uint(15), 'Date bonus for 5th day 1st second must be 15%.');
-        Assert.equal(dateBonus(now + 10 days), uint(15), 'Date bonus for 10th day must be 15%.');
-        Assert.equal(dateBonus(now + 10 days + 1 seconds), uint(10), 'Date bonus for 10th day 1st second must be 10%.');
-        Assert.equal(dateBonus(now + 14 days), uint(10), 'Date bonus for 14th day must be 10%.');
-        Assert.equal(dateBonus(now + 14 days + 1 seconds), uint(6),  'Date bonus for 14th day 1st second must be 6%.');
-        Assert.equal(dateBonus(now + 18 days), uint(6),  'Date bonus for 18th day must be 6%.');
-        Assert.equal(dateBonus(now + 18 days + 1 seconds), uint(3),  'Date bonus for 18th day 1st second must be 3%.');
-        Assert.equal(dateBonus(now + 21 days), uint(3),  'Date bonus for 21st day must be 3%.');
-        Assert.equal(dateBonus(now + 21 days + 1 seconds), uint(0),  'Date bonus for 21st day 1st second must be 0%.');
-        Assert.equal(dateBonus(now + 30 days), uint(0),  'Date bonus for 30th day must be 0%.');
+        uint256 time = startTime = now;
+
+        Assert.equal(dateBonus(time), uint(35), 'Date bonus for 1st second must be 35%.');
+        Assert.equal(dateBonus(time + 2 days), uint(35), 'Date bonus for 2nd day must be 35%.');
+        Assert.equal(dateBonus(time + 2 days + 1 seconds), uint(20), 'Date bonus for 2nd day 1st second must be 20%.');
+        Assert.equal(dateBonus(time + 5 days), uint(20), 'Date bonus for 5th day must be 20%.');
+        Assert.equal(dateBonus(time + 5 days + 1 seconds), uint(15), 'Date bonus for 5th day 1st second must be 15%.');
+        Assert.equal(dateBonus(time + 10 days), uint(15), 'Date bonus for 10th day must be 15%.');
+        Assert.equal(dateBonus(time + 10 days + 1 seconds), uint(10), 'Date bonus for 10th day 1st second must be 10%.');
+        Assert.equal(dateBonus(time + 14 days), uint(10), 'Date bonus for 14th day must be 10%.');
+        Assert.equal(dateBonus(time + 14 days + 1 seconds), uint(6),  'Date bonus for 14th day 1st second must be 6%.');
+        Assert.equal(dateBonus(time + 18 days), uint(6),  'Date bonus for 18th day must be 6%.');
+        Assert.equal(dateBonus(time + 18 days + 1 seconds), uint(3),  'Date bonus for 18th day 1st second must be 3%.');
+        Assert.equal(dateBonus(time + 21 days), uint(3),  'Date bonus for 21st day must be 3%.');
+        Assert.equal(dateBonus(time + 21 days + 1 seconds), uint(0),  'Date bonus for 21st day 1st second must be 0%.');
+        Assert.equal(dateBonus(time + 30 days), uint(0),  'Date bonus for 30th day must be 0%.');
     }
 
     function testQuantityBonus() public {

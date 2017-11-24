@@ -65,7 +65,7 @@ contract LimitedPurchaseToken is MintableToken {
     /**
      * @dev Unfreeze n percent of unsold tokens.
      */
-    function unfreeze(uint _percent) onlyOwner public {
+    function unfreeze(uint256 _percent) onlyOwner public {
         require(totalSupply < maxSupply);
 
         uint256 unfreezeAmount = maxSupply.sub(totalSupply).div(_percent);

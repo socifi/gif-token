@@ -119,6 +119,17 @@ contract('GifCrowdsale', function ([owner, wallet, socifiTeam, socifiOps, gifFou
             await increaseTimeTo(startTime);
         });
 
+        describe('give tokens', async () => {
+            it('owner should be able to give tokens', async function () {
+                await crowdsale.giveTokens(investor, investmentAmount, {from: owner});
+                assert.equal(await token.balanceOf(investor), expectedTokenAmount.toNumber());
+            });
+
+            it('should not give tokens from other than owner', async function () {
+                await assert.isRejected(crowdsale.giveTokens(investor, investmentAmount, {from: investor}), 'revert');
+            });
+        });
+
         describe('general', async () => {
             beforeEach(async () => {
                 await crowdsale.buyTokens(investor, {value: investmentAmount, from: investor});

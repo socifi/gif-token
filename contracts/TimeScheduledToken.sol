@@ -7,15 +7,15 @@ pragma solidity ^0.4.11;
  * @dev Adds ability to control since what time the token is purchasable and transferable.
  */
 contract TimeScheduledToken {
-    uint public purchasableAfterTime;
-    uint public transferableAfterTime;
+    uint256 public purchasableAfterTime;
+    uint256 public transferableAfterTime;
 
     /**
      * @dev Contract constructor.
-     * @param _purchasableAfterTime uint After what time the token is purchasable.
-     * @param _transferableAfterTime uint After what time the token is transferable.
+     * @param _purchasableAfterTime uint256 After what time the token is purchasable.
+     * @param _transferableAfterTime uint256 After what time the token is transferable.
      */
-    function TimeScheduledToken(uint _purchasableAfterTime, uint _transferableAfterTime) public {
+    function TimeScheduledToken(uint256 _purchasableAfterTime, uint256 _transferableAfterTime) public {
         purchasableAfterTime = _purchasableAfterTime;
         transferableAfterTime = _transferableAfterTime;
     }
