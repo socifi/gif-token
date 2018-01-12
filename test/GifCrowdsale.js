@@ -1,202 +1,150 @@
 'use strict';
 
-import ether from 'zeppelin-solidity/test/helpers/ether';
-import {increaseTimeTo, duration} from 'zeppelin-solidity/test/helpers/increaseTime';
-import latestTime from 'zeppelin-solidity/test/helpers/latestTime';
-
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import expectThrow from 'zeppelin-solidity/test/helpers/expectThrow';
+import latestTime from 'zeppelin-solidity/test/helpers/latestTime';
+import {duration, increaseTimeTo} from 'zeppelin-solidity/test/helpers/increaseTime';
 
-const GifToken = artifacts.require('./GifToken.sol');
 const GifCrowdsale = artifacts.require('./GifCrowdsale.sol');
-const BigNumber = web3.BigNumber;
+const GifToken = artifacts.require('./GifToken.sol');
+const PreSaleVesting = artifacts.require('./vesting/PreSaleVesting.sol');
+const FourTimeVesting = artifacts.require('./vesting/FourTimeVesting.sol');
+const ThreeTimeVesting = artifacts.require('./vesting/ThreeTimeVesting.sol');
 
-contract('GifCrowdsale', function ([owner, wallet, socifiTeam, socifiOps, gifFoundation, investor, owner2]) {
+contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, gifFoundation]) {
 
     chai.use(chaiAsPromised);
     const assert = chai.assert;
 
-    const digits = 10 ** 18;
-    const rate = new BigNumber(5000);
-    const maxSupply = new BigNumber(5000000000 * digits);
-    const preallocatedTokenAmount = maxSupply.mul(0.39);
+    // Rate calculated based on ETH / USD rate in times of writing the whitepaper.
+    const rate = 50000;
 
-    let startTime;
-    let endTime;
-    let tokenUnfreezeTime;
     let crowdsale;
     let token;
+    let tokenVesting;
+    let start;
+    let end;
 
     beforeEach(async function () {
-        startTime = latestTime() + duration.weeks(1);
-        endTime = startTime + duration.weeks(1);
-        tokenUnfreezeTime = endTime + duration.days(1);
-
-        crowdsale = await GifCrowdsale.new(
-            socifiTeam,
-            socifiOps,
-            gifFoundation,
-            startTime,
-            endTime,
-            tokenUnfreezeTime,
-            wallet,
-            {
-                from: owner
-            }
-        );
-        token = GifToken.at(await crowdsale.token());
+        start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
+        end = start + duration.days(5);
+        crowdsale = await GifCrowdsale.new(start, end, rate);
+        token = GifToken.at(await crowdsale.token.call());
+        tokenVesting = PreSaleVesting.at(await crowdsale.preSaleVesting.call());
     });
 
     describe('construction', async () => {
         it('should be ownable', async () => {
-            assert.equal(await crowdsale.owner(), owner);
+            assert.equal(await crowdsale.owner.call(), owner);
         });
 
-        it('should have correct startTime', async () => {
-            assert.equal(await crowdsale.startTime(), startTime);
+        it('should have GIF Token contract', async () => {
+            assert.equal(await token.symbol.call(), 'GIF');
         });
 
-        it('should have correct endTime', async () => {
-            assert.equal(await crowdsale.endTime(), endTime);
-        });
-
-        it('should have correct rate', async () => {
-            assert.equal(await crowdsale.rate(), rate.toNumber());
-        });
-
-        it('should have correct wallet', async () => {
-            assert.equal(await crowdsale.wallet(), wallet);
-        });
-
-        it('should be linked to GIF Token contract', async () => {
-            assert.equal(await crowdsale.token(), token.address);
-        });
-
-        it('token should have same wallet as the crowdsale contract', async () => {
-            assert.equal(await token.wallet(), wallet);
-        });
-
-        it('token should have same rate as the crowdsale contract', async () => {
-            assert.equal(await token.rate(), rate.toNumber());
-        });
-
-        it('token should have same end time as the crowdsale contract', async () => {
-            assert.equal(await token.purchasableAfterTime(), endTime);
-        });
-
-        it('investor should have 0 tokens initially', async () => {
-            assert.equal(await token.balanceOf(investor), 0);
+        it('should own the token contract', async () => {
+            assert.equal(await token.owner.call(), crowdsale.address);
         });
     });
 
-    describe('preallocation', async () => {
-        it('should give SOCIFI Team 6%', async () => {
-            assert.equal(await token.balanceOf(socifiTeam), maxSupply.mul(0.06).toNumber());
+    it ('should respect pre-sale tokens cap', async () => {
+        const preSaleCap = 406666667;
+        await crowdsale.giveTokensPreSale(investor, preSaleCap/rate - 1000);
+        assert.equal(await tokenVesting.vested.call(investor), preSaleCap)
+
+    });
+
+    describe('pre-sale vesting', async () => {
+        let result;
+        const invested = 10;
+        const preSaleBonus = 1.28;
+        const quantityBonus = 1.01;
+        const expectedTokens = invested * rate * preSaleBonus * quantityBonus;
+
+        beforeEach(async function () {
+            result = await crowdsale.giveTokensPreSale(investor, invested);
         });
 
-        it('should give SOCIFI Ops 11%', async () => {
-            assert.equal(await token.balanceOf(socifiOps), maxSupply.mul(0.11).toNumber());
+        it ('should purchase tokens', async () => {
+            assert.equal(result.logs[0].event, 'TokenPurchase');
         });
 
-        it('should give GIF Foundation 22%', async () => {
-            assert.equal(await token.balanceOf(gifFoundation), maxSupply.mul(0.22).toNumber());
+        it ('should update total tokens sold', async () => {
+            assert.equal(await crowdsale.preSaleTokensSold.call(), expectedTokens);
         });
 
-        it('should have total number of issued tokens equal to preallocated amount', async () => {
-            assert.equal(await token.totalSupply(), preallocatedTokenAmount.toNumber());
+        it ('should set vested amount for investor', async () => {
+            assert.equal(await tokenVesting.vested.call(investor), expectedTokens);
+        });
+
+        it ('should return no releasable amount', async () => {
+            assert.equal(await tokenVesting.releasableAmount.call(investor), 0);
+        });
+
+        it ('should fail releasing tokens', async () => {
+            await expectThrow(tokenVesting.release({from: investor}));
+        });
+
+        it ('should return releasable amount after 90 days', async () => {
+            await increaseTimeTo(end + duration.days(90));
+            assert.equal(await tokenVesting.releasableAmount.call(investor), expectedTokens);
+        });
+
+        it ('should release tokens after 90 days', async () => {
+            await increaseTimeTo(end + duration.days(90));
+            const result = await tokenVesting.release({from: investor});
+            assert.equal(result.logs[0].event, 'Released');
         });
     });
 
-    describe('token purchase', async () => {
-        const etherToInvest = 1;
-        const dateBonus = 1.35;
-        const investmentAmount = ether(etherToInvest);
-        const expectedTokenAmount = rate.mul(investmentAmount).mul(dateBonus);
-        const expectedTotalSupply = (new BigNumber(etherToInvest)).mul(rate).mul(digits).mul(dateBonus)
-            .add(preallocatedTokenAmount);
+    describe('crowdsale', async () => {
+        let result;
+        const invested = 1;
+        const phaseBonus = 116;
+        const expectedTokens = invested * rate * phaseBonus / 100;
 
-        beforeEach(async () => {
-            await increaseTimeTo(startTime);
+        beforeEach(async function () {
+            result = await crowdsale.giveTokens(investor, invested);
         });
 
-        describe('give tokens', async () => {
-            it('owner should be able to give tokens', async function () {
-                await crowdsale.giveTokens(investor, investmentAmount, {from: owner});
-                assert.equal(await token.balanceOf(investor), expectedTokenAmount.toNumber());
-            });
-
-            it('should not give tokens from other than owner', async function () {
-                await assert.isRejected(crowdsale.giveTokens(investor, investmentAmount, {from: investor}), 'revert');
-            });
+        it ('should purchase tokens', async () => {
+            assert.equal(result.logs[0].event, 'TokenPurchase');
         });
 
-        describe('general', async () => {
-            beforeEach(async () => {
-                await crowdsale.buyTokens(investor, {value: investmentAmount, from: investor});
-            });
-
-            it('should update total supply', async function () {
-                assert.equal(await token.totalSupply(), expectedTotalSupply.toNumber());
-            });
-
-            it('should update investor balance', async function () {
-                assert.equal(await token.balanceOf(investor), expectedTokenAmount.toNumber());
-            });
-
-            it('wei raised amount should be updated on crowdsale contract', async () => {
-                assert.equal(await crowdsale.weiRaised(), investmentAmount.toNumber());
-            })
+        it ('should update total tokens sold', async () => {
+            assert.equal(await crowdsale.crowdsaleTokensSold.call(), expectedTokens);
         });
 
-        describe('pausable lifecycle', async () => {
-            beforeEach(async () => {
-                await crowdsale.pause();
-            });
-
-            it('should not sale when paused', async function () {
-                await assert.isRejected(crowdsale.buyTokens(investor, {value: investmentAmount, from: investor}), 'revert');
-            });
-
-            it('should sale when not paused', async function () {
-                await crowdsale.unpause();
-                await crowdsale.buyTokens(investor, {value: investmentAmount, from: investor});
-
-                assert.equal(await token.balanceOf(investor), expectedTokenAmount.toNumber());
-                assert.equal(await token.totalSupply(), expectedTotalSupply.toNumber());
-            });
+        it ('investor should own the tokens', async () => {
+            assert.equal(await token.balanceOf.call(investor), expectedTokens);
         });
     });
 
-    describe('token owner', async () => {
-        it('should be crowdsale contract', async () => {
-            assert.equal(await token.owner(), crowdsale.address);
+    describe('preallocated split', async () => {
+        let result;
+        let fourTimeVesting;
+        let threeTimeVesting;
+        let cap;
+
+        beforeEach(async function () {
+            result = await crowdsale.doPreallocatedSplit(socifi, socifiOps, gifFoundation);
+            fourTimeVesting = FourTimeVesting.at(await crowdsale.fourTimeVesting.call());
+            threeTimeVesting = ThreeTimeVesting.at(await crowdsale.threeTimeVesting.call());
+            cap = await token.cap.call();
         });
 
-        it('should be changeable to someone else', async () => {
-            await crowdsale.transferTokenOwnership(owner2);
-            assert.equal(await token.owner(), owner2);
-        });
-    });
-
-    describe('minting', async () => {
-        const tokensToMint = new BigNumber(1337).mul(digits);
-        let startSupply;
-
-        beforeEach(async () => {
-            startSupply = await token.totalSupply();
-            await crowdsale.mintTokens(investor, tokensToMint);
+        it ('should vest tokens for SOCIFI', async () => {
+            assert.equal(await threeTimeVesting.vested.call(socifi), cap * 6 / 100);
         });
 
-        it('should update total supply', async () => {
-            assert.equal(await token.totalSupply(), startSupply.add(tokensToMint).toNumber());
+        it ('should vest tokens for SOCIFI Ops', async () => {
+            assert.equal(await fourTimeVesting.vested.call(socifiOps), cap * 11 / 100);
         });
 
-        it('should update investor balance', async () => {
-            assert.equal(await token.balanceOf(investor), tokensToMint.toNumber());
+        it ('should vest tokens for GIF Foundation', async () => {
+            assert.equal(await fourTimeVesting.vested.call(gifFoundation), cap * 22 / 100);
         });
 
-        it('wei raised amount should not be updated on crowdsale contract', async () => {
-            assert.equal(await crowdsale.weiRaised(), 0);
-        })
     });
 });

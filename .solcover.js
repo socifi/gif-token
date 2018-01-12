@@ -1,7 +1,9 @@
 'use strict';
 
 module.exports = {
-    norpc: true,
-    copyNodeModules: true,
-    port: 8555,
+    //norpc: true,
+    copyPackages: ['zeppelin-solidity'],
+    skipFiles: [
+        'mocks',
+    ]
 };

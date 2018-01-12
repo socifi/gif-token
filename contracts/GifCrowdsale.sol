@@ -1,43 +1,47 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.18;
 
 
-import 'zeppelin-solidity/contracts/math/SafeMath.sol';
-import 'zeppelin-solidity/contracts/lifecycle/Pausable.sol';
-import './GifToken.sol';
+import "./GifToken.sol";
+import "./vesting/PreSaleVesting.sol";
+import "./vesting/ThreeTimeVesting.sol";
+import "./vesting/FourTimeVesting.sol";
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 /**
- * @title Crowdsale contract for GIF Token.
- * @author SOCIFI Ltd, 2017
- * @dev This is the main contract for the SOCIFI ICO. This crowdsale contract initializes a new GIF Token (so this one
- * is the token contract owner), do the initial share distribution and handle the purchasing of the tokens.
+ * @title GIF Crowdsale
+ * @author SOCIFI Ltd, 2018
+ * @dev Crowdsale is a base contract for managing a token crowdsale.
+ * Crowdsale has a start and end timestamps, where investors can make
+ * token purchases and the crowdsale will assign them tokens based
+ * on a token per ETH rate. Funds collected are forwarded to a wallet
+ * as they arrive.
  */
-contract GifCrowdsale is Pausable {
+contract GifCrowdsale is Ownable {
     using SafeMath for uint256;
 
-    // Addresses for the initial split
-    address public socifiTeamAddress;
-    address public socifiOpsAddress;
-    address public gifFoundationAddress;
-
-    // GIF Token instance
     GifToken public token;
+    PreSaleVesting public preSaleVesting;
+    ThreeTimeVesting public threeTimeVesting;
+    FourTimeVesting public fourTimeVesting;
 
-    // start and end timestamps where investments are allowed (both inclusive)
+    // how many token units a buyer gets per wei
+    uint256 public rate;
+
     uint256 public startTime;
     uint256 public endTime;
 
-    // address where funds are collected
-    address public wallet;
-
-    // conversion rate between GIF Tokens and Ethereum
-    uint256 public constant rate = 5000;
-
-    // amount of raised money in wei
     uint256 public weiRaised;
+    uint256 public preSaleTokensSold;
+    uint256 public crowdsaleTokensSold;
 
-    // No. of decimal units in GIF Token
-    uint256 public constant decimals = 18;
+    uint256 private constant PRE_SALE_CAP = 406666667;
+    uint256 private constant CROWDSALE_CAP = 3050000000;
+    uint256 private constant PHASE_1 = 406666667;
+    uint256 private constant PHASE_2 = 551904762;
+    uint256 private constant PHASE_3 = 697142857;
+    bool private preallocatedSplitDone = false;
 
     /**
      * @dev Event for token purchase logging.
@@ -49,184 +53,176 @@ contract GifCrowdsale is Pausable {
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
     /**
-     * @dev Initializes the crowdsale, creates the token and does basic checks of input parameters.
-     * @param _socifi address Address of the SOCIFI Team for initial split.
-     * @param _socifiOps address Address of the SOCIFI Ops for initial split.
-     * @param _gifFoundation address Address of the GIF Foundation for initial split.
-     * @param _startTime uint256 ICO start time.
-     * @param _endTime uint256 ICO end time.
-     * @param _transferableAfterTime uint256 When the token is unfreezed for transfer.
-     * @param _wallet address Address of the wallet to which all the invested funds will be transferred.
+     * @dev Initialize the crowdsale.
+     * @param _startTime uint256 Start date of the crowdsale. In seconds.
+     * @param _endTime uint256 End date of the crowdsale. In seconds. Also used as a starting date for vesting.
+     * @param _rate uint256 Base rate for the token purchase. Discounts may apply later.
      */
-    function GifCrowdsale(
-        address _socifi,
-        address _socifiOps,
-        address _gifFoundation,
-        uint256 _startTime,
-        uint256 _endTime,
-        uint256 _transferableAfterTime,
-        address _wallet
-    ) Ownable() public
-    {
-        require(_socifi != address(0));
-        require(_socifiOps != address(0));
-        require(_gifFoundation != address(0));
-        require(_startTime >= now);
-        require(_endTime >= _startTime);
-        require(_wallet != address(0));
+    function GifCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate) Ownable() public {
+        require(_rate > 0);
 
-        socifiTeamAddress = _socifi;
-        socifiOpsAddress = _socifiOps;
-        gifFoundationAddress = _gifFoundation;
-        wallet = _wallet;
-
+        token = new GifToken();
+        preSaleVesting = new PreSaleVesting(token, _endTime);
+        threeTimeVesting = new ThreeTimeVesting(token, _endTime);
+        fourTimeVesting = new FourTimeVesting(token, _endTime);
+        rate = _rate;
         startTime = _startTime;
         endTime = _endTime;
-
-        token = new GifToken(endTime, _transferableAfterTime, wallet, rate);
-
-        doPreallocatedSplit();
     }
 
     /**
-     * @dev fallback function in case someone will sent ETH directly to this contract.
+     * @dev Mint the tokens based on the amount provided and optional bonuses given.
+     * Used only by owner during the Pre-sale ICO phase.
+     * @param beneficiary address Address to where the tokens shall be send to.
+     * @param weiAmount uint256 Amount of wei the user sent.
      */
-    function () public payable {
-        buyTokens(msg.sender);
-    }
+    function giveTokensPreSale(address beneficiary, uint256 weiAmount) public onlyOwner {
+        require(beneficiary != 0x0);
+        require(weiAmount != 0);
 
-    /**
-     * @dev Buy the tokens based on the amount sent and optional bonuses given.
-     * @param _beneficiary address Address to where the tokens shall be send to.
-     */
-    function buyTokens(address _beneficiary) public whenNotPaused payable {
-        require(validPurchase());
+        uint256 tokens = weiAmount.mul(rate);
 
-        processTokens(_beneficiary, msg.value);
+        require(preSaleTokensSold.add(tokens) <= PRE_SALE_CAP);
 
-        forwardFunds();
-    }
+        tokens = tokens.add(tokens.div(100).mul(28));
 
-    /**
-     * @dev This mint the tokens based on the amount provided and optional bonuses given.
-     * Used only by owner during the ICO when purchasing from various cryptocurrencies (BTC, LTC)
-     * @param _beneficiary address Address to where the tokens shall be send to.
-     * @param _weiAmount uint256 Amount of wei the user sent.
-     */
-    function giveTokens(address _beneficiary, uint256 _weiAmount) public onlyOwner {
-        processTokens(_beneficiary, _weiAmount);
-    }
-
-    /**
-     * @dev Processes the token give process. E.g. calculates token amount, update weiRaised variable...
-     * @param _beneficiary address Address to where the tokens shall be send to.
-     * @param _weiAmount uint256 Amount of wei the user sent.
-     */
-    function processTokens(address _beneficiary, uint256 _weiAmount) private {
-        require(_beneficiary != 0x0);
-
-        // calculate token amount to be created
-        uint256 tokens = _weiAmount.mul(rate);
-
-        uint256 dateBonusPercent = dateBonus(now);
-        uint256 quantityBonusPercent = quantityBonus(_weiAmount);
-        uint256 totalBonusPercent = dateBonusPercent + quantityBonusPercent;
-
-        if (totalBonusPercent > 0) {
-            uint256 bonusTokens = tokens.div(100).mul(totalBonusPercent);
-            tokens = tokens.add(bonusTokens);
+        if (quantityBonus(tokens) > 0) {
+            tokens = tokens.add(tokens.div(100).mul(quantityBonus(tokens)));
         }
 
-        // update state
-        weiRaised = weiRaised.add(_weiAmount);
+        if (preSaleTokensSold.add(tokens) >= PRE_SALE_CAP) {
+            tokens = tokens.sub(preSaleTokensSold.add(tokens).sub(PRE_SALE_CAP));
+        }
 
-        token.mint(_beneficiary, tokens);
-        TokenPurchase(msg.sender, _beneficiary, _weiAmount, tokens);
+        preSaleTokensSold = preSaleTokensSold.add(tokens);
+        weiRaised = weiRaised.add(weiAmount);
+
+        preSaleVesting.addVested(beneficiary, tokens);
+        token.mint(preSaleVesting, tokens);
+
+        TokenPurchase(
+            msg.sender,
+            beneficiary,
+            weiAmount,
+            tokens
+        );
+    }
+
+    /**
+     * @dev Mint the tokens based on the amount provided and optional bonuses and discount given.
+     * Used only by owner during the Pre-sale ICO phase.
+     * @param beneficiary address Address to where the tokens shall be send to.
+     * @param weiAmount uint256 Amount of wei the user sent.
+     */
+    function giveTokens(address beneficiary, uint256 weiAmount) public onlyOwner {
+        require(beneficiary != 0x0);
+        require(weiAmount != 0);
+
+        uint256 tokens = weiAmount.mul(rate);
+
+        if (phaseDiscount() > 0) {
+            tokens = tokens.add(tokens.div(100).mul(phaseDiscount()));
+        }
+
+        require(preSaleTokensSold.add(tokens) <= CROWDSALE_CAP);
+
+        if (quantityBonus(tokens) > 0) {
+            tokens = tokens.add(tokens.div(100).mul(quantityBonus(tokens)));
+        }
+
+        if (crowdsaleTokensSold.add(tokens) >= CROWDSALE_CAP) {
+            tokens = tokens.sub(crowdsaleTokensSold.add(tokens).sub(CROWDSALE_CAP));
+        }
+
+        crowdsaleTokensSold = crowdsaleTokensSold.add(tokens);
+        weiRaised = weiRaised.add(weiAmount);
+
+        token.mint(beneficiary, tokens);
+        TokenPurchase(
+            msg.sender,
+            beneficiary,
+            weiAmount,
+            tokens
+        );
+    }
+
+    /**
+     * @dev Distribute preallocated vested tokens between SOCIFI, SOCIFI Ops and GIF Foundation.
+     * The split amounts are defined as a percentages from total supply of the tokens.
+     * @param socifi address SOCIFI address.
+     * @param socifiOps address SOCIFI Ops address.
+     * @param gifFoundation address GIF Foundation address.
+     */
+    function doPreallocatedSplit(address socifi, address socifiOps, address gifFoundation) public onlyOwner {
+        require(preallocatedSplitDone == false);
+
+        uint256 totalSupply = token.cap();
+        uint256 socifiTokens = totalSupply.div(100).mul(6);
+        uint256 socifiOpsTokens = totalSupply.div(100).mul(11);
+        uint256 gifFoundationTokens = totalSupply.div(100).mul(22);
+
+        threeTimeVesting.addVested(socifi, socifiTokens);
+        token.mint(threeTimeVesting, socifiTokens);
+
+        fourTimeVesting.addVested(socifiOps, socifiOpsTokens);
+        fourTimeVesting.addVested(gifFoundation, gifFoundationTokens);
+        token.mint(fourTimeVesting, socifiOpsTokens.add(gifFoundationTokens));
+
+        preallocatedSplitDone = true;
+    }
+
+    /*
+     * @dev Get phase number based on amount of tokens already sold.
+     * @return uint256 Crowdsale phase number.
+     */
+    function getPhase() public view returns (uint256) {
+        if (crowdsaleTokensSold <= PHASE_1)
+            return 1;
+        if (crowdsaleTokensSold <= PHASE_2)
+            return 2;
+        if (crowdsaleTokensSold <= PHASE_3)
+            return 3;
+
+        return 4;
     }
 
     /**
      * @dev Allows the current owner to transfer control of the token to a newOwner.
-     * @param _newOwner address The address to transfer ownership to.
+     * @param newOwner address The address to transfer ownership to.
      */
-    function transferTokenOwnership(address _newOwner) onlyOwner public {
-        token.transferOwnership(_newOwner);
+    function transferTokenOwnership(address newOwner) public onlyOwner {
+        token.transferOwnership(newOwner);
     }
 
     /**
-     * @dev Mint tokens in given amount and assign them to given address. Be aware of max supply of tokens.
-     * @param _to address The address that will receive the minted tokens.
-     * @param _amount uint256 The amount of tokens to mint.
-     * @return bool A boolean that indicates if the operation was successful.
+     * @dev Get the discount percentage based on which crowdsale phase we currently are.
+     * @return uint256 Discount percentage.
      */
-    function mintTokens(address _to, uint256 _amount) onlyOwner public returns (bool) {
-        require(now <= endTime);
+    function phaseDiscount() internal view returns (uint256) {
 
-        return token.mint(_to, _amount);
-    }
-
-    /**
-     * @return bool true if crowdsale event has ended
-     */
-    function hasEnded() public constant returns (bool) {
-        return now > endTime;
-    }
-
-    /**
-     * @dev Distribute preallocated tokens between SOCIFI Team, SOCIFI Ops and GIF Foundation.
-     * The split amounts are defined as a percentages from total supply of the tokens.
-     */
-    function doPreallocatedSplit() internal {
-        uint256 maxSupply = token.maxSupply();
-        token.mint(socifiTeamAddress, maxSupply.div(100).mul(6));
-        token.mint(socifiOpsAddress, maxSupply.div(100).mul(11));
-        token.mint(gifFoundationAddress, maxSupply.div(100).mul(22));
-    }
-
-    /**
-     * @dev Get the total bonus amount based on date.
-     * @param _time uint256 Time for which to calculate the bonus.
-     * @return uint256 Date bonus percentage.
-     */
-    function dateBonus(uint256 _time) view internal returns (uint256) {
-        uint256 timeFromStart = _time - startTime;
-
-        if (timeFromStart <= 2 days) return 35;
-        if (timeFromStart <= 5 days) return 20;
-        if (timeFromStart <= 10 days) return 15;
-        if (timeFromStart <= 14 days) return 10;
-        if (timeFromStart <= 18 days) return 6;
-        if (timeFromStart <= 21 days) return 3;
+        if (getPhase() == 1)
+            return 16;
+        if (getPhase() == 2)
+            return 12;
+        if (getPhase() == 3)
+            return 7;
 
         return 0;
     }
 
     /**
-     * @dev Get the total bonus amount based on amount.
-     * @param _weiAmount uint256 Amount in wei.
+     * @dev Get the bonus percentage amount based on tokens purchased.
+     * @param tokens uint256 Tokens purchased.
      * @return uint256 Quantity bonus percentage.
      */
-    function quantityBonus(uint256 _weiAmount) pure internal returns (uint256) {
-        if (_weiAmount >= 100 * (10 ** decimals)) return 7;
-        if (_weiAmount >= 50 * (10 ** decimals)) return 3;
-        if (_weiAmount >= 10 * (10 ** decimals)) return 1;
+    function quantityBonus(uint256 tokens) internal pure returns (uint256) {
+        if (tokens <= 250000)
+            return 0;
+        if (tokens <= 1250000)
+            return 1;
+        if (tokens <= 2500000)
+            return 3;
 
-        return 0;
-    }
-
-    /**
-     * send ether to the fund collection wallet
-     * override to create custom fund forwarding mechanisms
-     */
-    function forwardFunds() internal {
-        wallet.transfer(msg.value);
-    }
-
-    /**
-     * @return bool true if the transaction can buy tokens
-     */
-    function validPurchase() internal constant returns (bool) {
-        bool withinPeriod = now >= startTime && now <= endTime;
-        bool nonZeroPurchase = msg.value != 0;
-        return withinPeriod && nonZeroPurchase;
+        return 5;
     }
 }

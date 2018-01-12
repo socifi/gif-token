@@ -2,39 +2,53 @@
     <img src="docs/SOCIFI-Sponsored-Data-logo-500px.png" alt="SOCIFI Sponsored Data Logo"> 
 </p>
 
-# SOCIFI Crowdsale & GIF Token contracts
-_An `ERC-20` smart contract for GIF token and crowdsale contract._
+# GIF Token contracts
+_GIF by SOCIFI. Smart contracts for the `ERC-20` GIF Token and the crowdsale._
 
-Please see the official [website](https://gif.network/) for the most recent
-updates and changes. The details of the GIF Token, the ICO (crowdsale)
-are described in the WhitePaper which can be found on the mentioned website.
+GIF represents the value of sponsorship (data/reward gifts) and the tool that
+advertisers (sponsors) can use to obtain media space and/or SOCIFI products
+and services, and which will be used to transform the reward to end-users
+(subscribers) and peer to peer data gifting (one user can send a specific
+amount of data to another as a gift).
+
+Please see the official [website](https://gif.network/) to learn more about the
+GIF Token, the ICO (crowdsale) and the whole ecosystem.
 
 ## Table of contents
-* [About contracts](#about-contracts)
-  * [GIF Token](#gif-token)
-  * [Crowdsale (ICO)](#crowdsale-ico)
-* [Running dev blockchain](docs/runninDevBlockchain.md)
-* [Running private blockchain](docs/runninPrivateBlockchain.md)
-* [Deploying the contracts](docs/deployingTheContracts.md)
-  * [Interacting with deployed contracts](docs/deployingTheContracts.md#interacting)
+* [Development](#development)
+* [Contracts](/docs/Contracts.md)
 
-## <a name="about-contracts"></a> About contracts
-### <a name="gif-token"></a> GIF Token
-Contract located in [`contracts/GifToken.sol`](contracts/GifToken.sol)
-represents the GIF Token based on [ERC20](https://en.wikipedia.org/wiki/ERC20)
-[standard](https://theethereum.wiki/w/index.php/ERC20_Token_Standard).
+## <a name="development"></a> Development
 
-This is a globally recognized standard for custom tokens, coins and
-other assets that defines the basic functionality and offers a great support
-in most Ethereum related applications.
+### Dependencies
+GIF Token contracts require only local dependencies to be installed.
+No need to install anything globally.
+```bash
+$ npm install
+```
 
-The GIF Token also implements a Lock-Up mechanism. This locks the trading
-abilities of the token for the first 7 days after the ICO ends. After this period,
-all tokens are 100% tradable. This behavior is defined in
-[`contracts/TimeScheduledToken.sol`](contracts/TimeScheduledToken.sol). 
+### Testing
+```bash
+$ npm test
+```
 
-### <a name="crowdsale-ico"></a> Crowdsale (ICO)
-Crowdsale contract located in [`contracts/GifCrowdsale.sol`](contracts/GifCrowdsale.sol)
-is used for SOCIFI ICO. It handles the investment process (buying tokens +
-giving the bonus tokens), distributing tokens, initial splitting between SOCIFI Team,
-SOCIFI Ops, GIF Foundation, and Investors.
+### Code coverage
+```bash
+$ npm run coverage
+```
+#### Running on Windows
+Running code coverage require to start instance of TestRPC SC. This is done
+automatically by Solidity coverage. However, this is not possible on Windows.
+
+##### Recommended: Using Bash
+Modern versions of Windows allows you to install a linux. This gives you the
+Linux bash (e.g. "Bash on Ubuntu on Windows") where the code coverage command
+works great.
+
+##### Running testrpc-sc on its own
+Please consult official guide: [Running on windows](https://github.com/sc-forks/solidity-coverage/blob/master/docs/faq.md#running-on-windows)
+
+### Linting
+```bash
+$ npm run lint
+```

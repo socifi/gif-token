@@ -1,34 +1,48 @@
 {
-    "name": "socifi-gif-token",
-    "version": "1.0.0",
-    "description": "An ERC-20 smart contract for SOCIFI GIF token.",
-    "main": "",
-    "directories": {
-        "test": "test"
-    },
-    "scripts": {
-        "compile": "./node_modules/.bin/truffle compile",
-        "test": "./scripts/test.sh"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/socifi/gif-token.git"
-    },
-    "author": "SOCIFI Ltd. <code@socifi.com>",
-    "license": "MIT",
-    "homepage": "https://gif.network",
-    "devDependencies": {
-        "babel-polyfill": "^6.26.0",
-        "babel-preset-es2015": "^6.24.1",
-        "babel-preset-stage-2": "^6.24.1",
-        "babel-preset-stage-3": "^6.24.1",
-        "babel-register": "^6.26.0",
-        "chai": "^4.1.2",
-        "chai-as-promised": "^7.1.1",
-        "ethereumjs-testrpc": "^6.0.1",
-        "mocha": "^4.0.1",
-        "solidity-coverage": "^0.2.7",
-        "truffle": "4.0.0-beta.2",
-        "zeppelin-solidity": "^1.3.0"
-    }
+  "name": "gif-smart-contracts",
+  "version": "2.0.0-beta",
+  "description": "GIF by SOCIFI. Smart contracts for the ERC-20 GIF Token and the crowdsale.",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "npx truffle test",
+    "compile": "npx truffle compile",
+    "coverage": "npx solidity-coverage",
+    "lint": "npx solium -d contracts/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/socifi/gif-token.git"
+  },
+  "keywords": [
+    "smart-contracts",
+    "ethereum",
+    "ethereum-token",
+    "ethereum-ico",
+    "erc20",
+    "solidity",
+    "token"
+  ],
+  "author": "SOCIFI Ltd. <code@socifi.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/socifi/gif-token/issues"
+  },
+  "homepage": "https://github.com/socifi/gif-token#readme",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-preset-stage-3": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^4.1.0",
+    "solidity-coverage": "^0.4.8",
+    "solium": "^1.1.2",
+    "truffle": "^4.0.4",
+    "zeppelin-solidity": "^1.5.0"
+  }
 }
