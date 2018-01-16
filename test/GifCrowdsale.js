@@ -2,6 +2,7 @@
 
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import ether from 'zeppelin-solidity/test/helpers/ether';
 import expectThrow from 'zeppelin-solidity/test/helpers/expectThrow';
 import latestTime from 'zeppelin-solidity/test/helpers/latestTime';
 import {duration, increaseTimeTo} from 'zeppelin-solidity/test/helpers/increaseTime';
@@ -49,10 +50,9 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
     });
 
     it ('should respect pre-sale tokens cap', async () => {
-        const preSaleCap = 406666667;
-        await crowdsale.giveTokensPreSale(investor, preSaleCap/rate - 1000);
-        assert.equal(await tokenVesting.vested.call(investor), preSaleCap)
-
+        const preSaleCap = ether(406666667);
+        await crowdsale.giveTokensPreSale(investor, preSaleCap/rate - ether(1000));
+        assert.equal(await tokenVesting.vested.call(investor), preSaleCap.toNumber());
     });
 
     describe('pre-sale vesting', async () => {

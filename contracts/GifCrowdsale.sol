@@ -36,11 +36,12 @@ contract GifCrowdsale is Ownable {
     uint256 public preSaleTokensSold;
     uint256 public crowdsaleTokensSold;
 
-    uint256 private constant PRE_SALE_CAP = 406666667;
-    uint256 private constant CROWDSALE_CAP = 3050000000;
-    uint256 private constant PHASE_1 = 406666667;
-    uint256 private constant PHASE_2 = 551904762;
-    uint256 private constant PHASE_3 = 697142857;
+    uint256 private constant DECIMALS = 18;
+    uint256 private constant PRE_SALE_CAP = 406666667 * (10 ** DECIMALS);
+    uint256 private constant CROWDSALE_CAP = 3050000000 * (10 ** DECIMALS);
+    uint256 private constant PHASE_1 = 406666667 * (10 ** DECIMALS);
+    uint256 private constant PHASE_2 = 551904762 * (10 ** DECIMALS);
+    uint256 private constant PHASE_3 = 697142857 * (10 ** DECIMALS);
     bool private preallocatedSplitDone = false;
 
     /**
