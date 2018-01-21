@@ -26,7 +26,6 @@ contract ThreeTimeVesting is TokenVesting {
      */
     function releasableAmount(address beneficiary) public view returns (uint256) {
 
-        uint256 leftVested = vested[beneficiary].sub(released[beneficiary]);
         uint256 month = 30 days;
 
         if (now < start + month) {
@@ -35,15 +34,15 @@ contract ThreeTimeVesting is TokenVesting {
 
         if (now < start + 9 * month) {
             // 20% after 1 months
-            return leftVested.div(100).mul(20);
+            return vested[beneficiary].div(100).mul(20).sub(released[beneficiary]);
         }
 
         if (now < start + 12 * month) {
             // 30% after 9 months
-            return leftVested.div(100).mul(50);
+            return vested[beneficiary].div(100).mul(50).sub(released[beneficiary]);
         }
 
         // After 12 months, return everything available.
-        return leftVested;
+        return vested[beneficiary].sub(released[beneficiary]);
     }
 }
