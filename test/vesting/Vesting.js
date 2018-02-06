@@ -4,7 +4,7 @@ import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import latestTime from 'zeppelin-solidity/test/helpers/latestTime';
 import {duration, increaseTimeTo} from 'zeppelin-solidity/test/helpers/increaseTime';
-import advanceBlock from 'zeppelin-solidity/test/helpers/advanceToBlock';
+import expectThrow from 'zeppelin-solidity/test/helpers/expectThrow';
 
 const GifToken = artifacts.require('./../GifToken.sol');
 const TokenVesting = artifacts.require('./../vesting/FourTimeVesting.sol');
@@ -55,4 +55,10 @@ contract('Vesting', function ([owner, wallet, investor]) {
         await increaseTimeTo(start + duration.days(180));
         assert.equal(await tokenVesting.releasableAmount.call(investor), vestedAmount * 0.20);
     });
+
+    it('investor should not be able to do multiple withdrawals', async () => {
+        await increaseTimeTo(start + duration.days(30));
+        await tokenVesting.release({from: investor});
+        await expectThrow(tokenVesting.release({from: investor}));
+    })
 });

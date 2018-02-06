@@ -13,10 +13,8 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
  * @title GIF Crowdsale
  * @author SOCIFI Ltd, 2018
  * @dev Crowdsale is a base contract for managing a token crowdsale.
- * Crowdsale has a start and end timestamps, where investors can make
- * token purchases and the crowdsale will assign them tokens based
- * on a token per ETH rate. Funds collected are forwarded to a wallet
- * as they arrive.
+ * The process of issuing tokens is done by server application. Investors can not
+ * send ETH directly. They need to use one of the deposit wallets provided in KYC portal.
  */
 contract GifCrowdsale is Ownable {
     using SafeMath for uint256;
@@ -55,11 +53,10 @@ contract GifCrowdsale is Ownable {
 
     /**
      * @dev Initialize the crowdsale.
-     * @param _startTime uint256 Start date of the crowdsale. In seconds.
-     * @param _endTime uint256 End date of the crowdsale. In seconds. Also used as a starting date for vesting.
+     * @param _endTime uint256 End date of the crowdsale. In seconds. Used as a starting date for vesting.
      * @param _rate uint256 Base rate for the token purchase. Discounts may apply later.
      */
-    function GifCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate) Ownable() public {
+    function GifCrowdsale(uint256 _endTime, uint256 _rate) Ownable() public {
         require(_rate > 0);
 
         token = new GifToken();
@@ -67,7 +64,6 @@ contract GifCrowdsale is Ownable {
         threeTimeVesting = new ThreeTimeVesting(token, _endTime);
         fourTimeVesting = new FourTimeVesting(token, _endTime);
         rate = _rate;
-        startTime = _startTime;
         endTime = _endTime;
     }
 
@@ -217,11 +213,11 @@ contract GifCrowdsale is Ownable {
      * @return uint256 Quantity bonus percentage.
      */
     function quantityBonus(uint256 tokens) internal pure returns (uint256) {
-        if (tokens <= 250000)
+        if (tokens <= 250000 * (10 ** DECIMALS))
             return 0;
-        if (tokens <= 1250000)
+        if (tokens <= 1250000 * (10 ** DECIMALS))
             return 1;
-        if (tokens <= 2500000)
+        if (tokens <= 2500000 * (10 ** DECIMALS))
             return 3;
 
         return 5;

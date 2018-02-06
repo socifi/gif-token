@@ -24,13 +24,11 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
     let crowdsale;
     let token;
     let tokenVesting;
-    let start;
     let end;
 
     beforeEach(async function () {
-        start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
-        end = start + duration.days(5);
-        crowdsale = await GifCrowdsale.new(start, end, rate);
+        end = latestTime() + duration.days(5);
+        crowdsale = await GifCrowdsale.new(end, rate);
         token = GifToken.at(await crowdsale.token.call());
         tokenVesting = PreSaleVesting.at(await crowdsale.preSaleVesting.call());
     });
@@ -51,16 +49,43 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
 
     it ('should respect pre-sale tokens cap', async () => {
         const preSaleCap = ether(406666667);
-        await crowdsale.giveTokensPreSale(investor, preSaleCap/rate - ether(1000));
+        await crowdsale.giveTokensPreSale(investor, preSaleCap/rate);
         assert.equal(await tokenVesting.vested.call(investor), preSaleCap.toNumber());
     });
 
+    describe('presale investments', async () => {
+        it('should only get a regular bonus', async () => {
+            const investment = ether(1);
+            await crowdsale.giveTokensPreSale(investor, investment);
+            assert.equal(await tokenVesting.vested.call(investor), ether(64000).toNumber());
+        });
+
+        it('should get a regular bonus + quantity bonus level 1', async () => {
+            const investment = ether(5);
+            await crowdsale.giveTokensPreSale(investor, investment);
+            assert.equal(await tokenVesting.vested.call(investor), ether(323200).toNumber());
+        });
+
+        it('should get a regular bonus + quantity bonus level 2', async () => {
+            const investment = ether(25);
+            await crowdsale.giveTokensPreSale(investor, investment);
+            assert.equal(await tokenVesting.vested.call(investor), ether(1648000).toNumber());
+        });
+
+        it('should get a regular bonus + quantity bonus level 3', async () => {
+            const investment = ether(50);
+            await crowdsale.giveTokensPreSale(investor, investment);
+            assert.equal((await tokenVesting.vested.call(investor)).toNumber(), ether(3360000).toNumber());
+        });
+
+    })
+
     describe('pre-sale vesting', async () => {
         let result;
-        const invested = 10;
+        const invested = ether(10);
         const preSaleBonus = 1.28;
         const quantityBonus = 1.01;
-        const expectedTokens = invested * rate * preSaleBonus * quantityBonus;
+        const expectedTokens = invested.mul(rate * preSaleBonus * quantityBonus);
 
         beforeEach(async function () {
             result = await crowdsale.giveTokensPreSale(investor, invested);
@@ -71,11 +96,11 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
         });
 
         it ('should update total tokens sold', async () => {
-            assert.equal(await crowdsale.preSaleTokensSold.call(), expectedTokens);
+            assert.equal(await crowdsale.preSaleTokensSold.call(), expectedTokens.toNumber());
         });
 
         it ('should set vested amount for investor', async () => {
-            assert.equal(await tokenVesting.vested.call(investor), expectedTokens);
+            assert.equal(await tokenVesting.vested.call(investor), expectedTokens.toNumber());
         });
 
         it ('should return no releasable amount', async () => {
@@ -88,7 +113,7 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
 
         it ('should return releasable amount after 90 days', async () => {
             await increaseTimeTo(end + duration.days(90));
-            assert.equal(await tokenVesting.releasableAmount.call(investor), expectedTokens);
+            assert.equal(await tokenVesting.releasableAmount.call(investor), expectedTokens.toNumber());
         });
 
         it ('should release tokens after 90 days', async () => {
@@ -100,9 +125,9 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
 
     describe('crowdsale', async () => {
         let result;
-        const invested = 1;
+        const invested = ether(1);
         const phaseBonus = 116;
-        const expectedTokens = invested * rate * phaseBonus / 100;
+        const expectedTokens = invested.mul(rate * phaseBonus).div(100);
 
         beforeEach(async function () {
             result = await crowdsale.giveTokens(investor, invested);
@@ -113,11 +138,11 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
         });
 
         it ('should update total tokens sold', async () => {
-            assert.equal(await crowdsale.crowdsaleTokensSold.call(), expectedTokens);
+            assert.equal(await crowdsale.crowdsaleTokensSold.call(), expectedTokens.toNumber());
         });
 
         it ('investor should own the tokens', async () => {
-            assert.equal(await token.balanceOf.call(investor), expectedTokens);
+            assert.equal(await token.balanceOf.call(investor), expectedTokens.toNumber());
         });
     });
 
