@@ -35,11 +35,11 @@ contract GifCrowdsale is Ownable {
     uint256 public crowdsaleTokensSold;
 
     uint256 private constant DECIMALS = 18;
-    uint256 private constant PRE_SALE_CAP = 406666667 * (10 ** DECIMALS);
+    uint256 private constant PRE_SALE_CAP = 842238054 * (10 ** DECIMALS);
     uint256 private constant CROWDSALE_CAP = 3050000000 * (10 ** DECIMALS);
-    uint256 private constant PHASE_1 = 406666667 * (10 ** DECIMALS);
-    uint256 private constant PHASE_2 = 551904762 * (10 ** DECIMALS);
-    uint256 private constant PHASE_3 = 697142857 * (10 ** DECIMALS);
+    uint256 private constant PHASE_1 = 1061984500 * (10 ** DECIMALS);
+    uint256 private constant PHASE_2 = 645057252 * (10 ** DECIMALS);
+    uint256 private constant PHASE_3 = 302370586 * (10 ** DECIMALS);
     bool private preallocatedSplitDone = false;
 
     /**
@@ -198,11 +198,11 @@ contract GifCrowdsale is Ownable {
     function phaseDiscount() internal view returns (uint256) {
 
         if (getPhase() == 1)
-            return 16;
+            return 18;
         if (getPhase() == 2)
-            return 12;
+            return 10;
         if (getPhase() == 3)
-            return 7;
+            return 4;
 
         return 0;
     }

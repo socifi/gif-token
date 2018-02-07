@@ -32,7 +32,7 @@ contract('PreSaleVesting', function ([owner, wallet, investor]) {
         // Days, expected amount to be available
         [0, 0],
         [89, 0],
-        [90, 1], // Tokens are releasable (100%) after 3 months (90 days)
+        [6 * 30, 1], // Tokens are releasable (100%) after 6 months
     ].forEach(async function (data) {
         const expectedTokens = vestedAmount * data[1];
 
