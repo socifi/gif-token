@@ -35,11 +35,8 @@ contract GifCrowdsale is Ownable {
     uint256 public crowdsaleTokensSold;
 
     uint256 private constant DECIMALS = 18;
-    uint256 private constant PRE_SALE_CAP = 842238054 * (10 ** DECIMALS);
-    uint256 private constant CROWDSALE_CAP = 3050000000 * (10 ** DECIMALS);
-    uint256 private constant PHASE_1 = 1061984500 * (10 ** DECIMALS);
-    uint256 private constant PHASE_2 = 645057252 * (10 ** DECIMALS);
-    uint256 private constant PHASE_3 = 302370586 * (10 ** DECIMALS);
+    uint256 private constant PRE_SALE_CAP = 1015447128 * (10 ** DECIMALS);
+    uint256 private constant CROWDSALE_CAP = 2034552872 * (10 ** DECIMALS);
     bool private preallocatedSplitDone = false;
 
     /**
@@ -78,18 +75,9 @@ contract GifCrowdsale is Ownable {
         require(weiAmount != 0);
 
         uint256 tokens = weiAmount.mul(rate);
+        tokens = tokens.add(tokens.div(100).mul(35));
 
         require(preSaleTokensSold.add(tokens) <= PRE_SALE_CAP);
-
-        tokens = tokens.add(tokens.div(100).mul(28));
-
-        if (quantityBonus(tokens) > 0) {
-            tokens = tokens.add(tokens.div(100).mul(quantityBonus(tokens)));
-        }
-
-        if (preSaleTokensSold.add(tokens) >= PRE_SALE_CAP) {
-            tokens = tokens.sub(preSaleTokensSold.add(tokens).sub(PRE_SALE_CAP));
-        }
 
         preSaleTokensSold = preSaleTokensSold.add(tokens);
         weiRaised = weiRaised.add(weiAmount);
@@ -117,19 +105,7 @@ contract GifCrowdsale is Ownable {
 
         uint256 tokens = weiAmount.mul(rate);
 
-        if (phaseDiscount() > 0) {
-            tokens = tokens.add(tokens.div(100).mul(phaseDiscount()));
-        }
-
         require(preSaleTokensSold.add(tokens) <= CROWDSALE_CAP);
-
-        if (quantityBonus(tokens) > 0) {
-            tokens = tokens.add(tokens.div(100).mul(quantityBonus(tokens)));
-        }
-
-        if (crowdsaleTokensSold.add(tokens) >= CROWDSALE_CAP) {
-            tokens = tokens.sub(crowdsaleTokensSold.add(tokens).sub(CROWDSALE_CAP));
-        }
 
         crowdsaleTokensSold = crowdsaleTokensSold.add(tokens);
         weiRaised = weiRaised.add(weiAmount);
@@ -168,58 +144,11 @@ contract GifCrowdsale is Ownable {
         preallocatedSplitDone = true;
     }
 
-    /*
-     * @dev Get phase number based on amount of tokens already sold.
-     * @return uint256 Crowdsale phase number.
-     */
-    function getPhase() public view returns (uint256) {
-        if (crowdsaleTokensSold <= PHASE_1)
-            return 1;
-        if (crowdsaleTokensSold <= PHASE_2)
-            return 2;
-        if (crowdsaleTokensSold <= PHASE_3)
-            return 3;
-
-        return 4;
-    }
-
     /**
      * @dev Allows the current owner to transfer control of the token to a newOwner.
      * @param newOwner address The address to transfer ownership to.
      */
     function transferTokenOwnership(address newOwner) public onlyOwner {
         token.transferOwnership(newOwner);
-    }
-
-    /**
-     * @dev Get the discount percentage based on which crowdsale phase we currently are.
-     * @return uint256 Discount percentage.
-     */
-    function phaseDiscount() internal view returns (uint256) {
-
-        if (getPhase() == 1)
-            return 18;
-        if (getPhase() == 2)
-            return 10;
-        if (getPhase() == 3)
-            return 4;
-
-        return 0;
-    }
-
-    /**
-     * @dev Get the bonus percentage amount based on tokens purchased.
-     * @param tokens uint256 Tokens purchased.
-     * @return uint256 Quantity bonus percentage.
-     */
-    function quantityBonus(uint256 tokens) internal pure returns (uint256) {
-        if (tokens <= 250000 * (10 ** DECIMALS))
-            return 0;
-        if (tokens <= 1250000 * (10 ** DECIMALS))
-            return 1;
-        if (tokens <= 2500000 * (10 ** DECIMALS))
-            return 3;
-
-        return 5;
     }
 }
