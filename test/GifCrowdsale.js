@@ -18,8 +18,8 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
     chai.use(chaiAsPromised);
     const assert = chai.assert;
 
-    // Rate calculated based on ETH / USD rate in times of writing the whitepaper.
-    const rate = 50000;
+    // Rate calculated based on ETH / USD rate in day of releasing the WhitePaper v2.06.
+    const rate = 41438;
 
     let crowdsale;
     let token;
@@ -48,7 +48,7 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
     });
 
     it ('should respect pre-sale tokens cap', async () => {
-        const preSaleCap = ether(406666667);
+        const preSaleCap = ether(842238054);
         await crowdsale.giveTokensPreSale(investor, preSaleCap/rate);
         assert.equal(await tokenVesting.vested.call(investor), preSaleCap.toNumber());
     });
@@ -57,28 +57,28 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
         it('should only get a regular bonus', async () => {
             const investment = ether(1);
             await crowdsale.giveTokensPreSale(investor, investment);
-            assert.equal(await tokenVesting.vested.call(investor), ether(64000).toNumber());
+            assert.equal(await tokenVesting.vested.call(investor), ether(53040.64).toNumber());
         });
 
         it('should get a regular bonus + quantity bonus level 1', async () => {
             const investment = ether(5);
             await crowdsale.giveTokensPreSale(investor, investment);
-            assert.equal(await tokenVesting.vested.call(investor), ether(323200).toNumber());
+            assert.equal(await tokenVesting.vested.call(investor), ether(267855.232).toNumber());
         });
 
         it('should get a regular bonus + quantity bonus level 2', async () => {
             const investment = ether(25);
             await crowdsale.giveTokensPreSale(investor, investment);
-            assert.equal(await tokenVesting.vested.call(investor), ether(1648000).toNumber());
+            assert.equal(await tokenVesting.vested.call(investor), ether(1365796.48).toNumber());
         });
 
         it('should get a regular bonus + quantity bonus level 3', async () => {
             const investment = ether(50);
             await crowdsale.giveTokensPreSale(investor, investment);
-            assert.equal((await tokenVesting.vested.call(investor)).toNumber(), ether(3360000).toNumber());
+            assert.equal((await tokenVesting.vested.call(investor)).toNumber(), ether(2784633.6).toNumber());
         });
 
-    })
+    });
 
     describe('pre-sale vesting', async () => {
         let result;
@@ -111,13 +111,13 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
             await expectThrow(tokenVesting.release({from: investor}));
         });
 
-        it ('should return releasable amount after 90 days', async () => {
-            await increaseTimeTo(end + duration.days(90));
+        it ('should return releasable amount after 6 months', async () => {
+            await increaseTimeTo(end + duration.days(6 * 30));
             assert.equal(await tokenVesting.releasableAmount.call(investor), expectedTokens.toNumber());
         });
 
-        it ('should release tokens after 90 days', async () => {
-            await increaseTimeTo(end + duration.days(90));
+        it ('should release tokens after 6 months', async () => {
+            await increaseTimeTo(end + duration.days(6 * 30));
             const result = await tokenVesting.release({from: investor});
             assert.equal(result.logs[0].event, 'Released');
         });
@@ -126,7 +126,7 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
     describe('crowdsale', async () => {
         let result;
         const invested = ether(1);
-        const phaseBonus = 116;
+        const phaseBonus = 118;
         const expectedTokens = invested.mul(rate * phaseBonus).div(100);
 
         beforeEach(async function () {

@@ -26,8 +26,10 @@ contract PreSaleVesting is TokenVesting {
      */
     function releasableAmount(address beneficiary) public view returns (uint256) {
 
-        if (now < start + 90 days) {
-            // If less then 90 days (3 months) return 0
+        uint256 month = 30 days;
+
+        if (now < start + 6 * month) {
+            // If less then 6 months return 0
             return 0;
         }
 
