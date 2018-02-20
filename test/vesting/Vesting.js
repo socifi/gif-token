@@ -9,7 +9,7 @@ import expectThrow from 'zeppelin-solidity/test/helpers/expectThrow';
 const GifToken = artifacts.require('./../GifToken.sol');
 const TokenVesting = artifacts.require('./../vesting/FourTimeVesting.sol');
 
-contract('Vesting', function ([owner, wallet, investor]) {
+contract('Vesting', function ([owner, wallet, buyer]) {
 
     chai.use(chaiAsPromised);
     const assert = chai.assert;
@@ -24,41 +24,41 @@ contract('Vesting', function ([owner, wallet, investor]) {
         start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
         token = await GifToken.new();
         tokenVesting = await TokenVesting.new(token.address, start);
-        await tokenVesting.addVested(investor, vestedAmount);
+        await tokenVesting.addVested(buyer, vestedAmount);
         await token.mint(tokenVesting.address, vestedAmount);
     });
 
-    it('investor should have vested tokens available for released', async () => {
-        assert.equal(await tokenVesting.vested.call(investor), vestedAmount);
+    it('buyer should have vested tokens available for released', async () => {
+        assert.equal(await tokenVesting.vested.call(buyer), vestedAmount);
     });
 
-    it('investor should have 5% tokens available to be released after 30 days', async () => {
+    it('buyer should have 5% tokens available to be released after 30 days', async () => {
         await increaseTimeTo(start + duration.days(30));
-        assert.equal(await tokenVesting.releasableAmount.call(investor), vestedAmount * 0.05);
+        assert.equal(await tokenVesting.releasableAmount.call(buyer), vestedAmount * 0.05);
     });
 
-    it('investor should be able to release those 5% of tokens after 30 days', async () => {
+    it('buyer should be able to release those 5% of tokens after 30 days', async () => {
         await increaseTimeTo(start + duration.days(30));
-        const result = await tokenVesting.release({from: investor});
+        const result = await tokenVesting.release({from: buyer});
         assert.equal(result.logs[0].event, 'Released');
     });
 
-    it('investor should have 0 tokens available after releasing them', async () => {
+    it('buyer should have 0 tokens available after releasing them', async () => {
         await increaseTimeTo(start + duration.days(30));
-        await tokenVesting.release({from: investor});
-        assert.equal(await tokenVesting.releasableAmount.call(investor), 0);
+        await tokenVesting.release({from: buyer});
+        assert.equal(await tokenVesting.releasableAmount.call(buyer), 0);
     });
 
-    it('investor should have 20% tokens available to be released after 6 months when releasing after 1 month', async () => {
+    it('buyer should have 20% tokens available to be released after 6 months when releasing after 1 month', async () => {
         await increaseTimeTo(start + duration.days(30));
-        await tokenVesting.release({from: investor});
+        await tokenVesting.release({from: buyer});
         await increaseTimeTo(start + duration.days(180));
-        assert.equal(await tokenVesting.releasableAmount.call(investor), vestedAmount * 0.20);
+        assert.equal(await tokenVesting.releasableAmount.call(buyer), vestedAmount * 0.20);
     });
 
-    it('investor should not be able to do multiple withdrawals', async () => {
+    it('buyer should not be able to do multiple withdrawals', async () => {
         await increaseTimeTo(start + duration.days(30));
-        await tokenVesting.release({from: investor});
-        await expectThrow(tokenVesting.release({from: investor}));
+        await tokenVesting.release({from: buyer});
+        await expectThrow(tokenVesting.release({from: buyer}));
     })
 });

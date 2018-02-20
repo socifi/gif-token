@@ -13,7 +13,7 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
  * @title GIF Crowdsale
  * @author SOCIFI Ltd, 2018
  * @dev Crowdsale is a base contract for managing a token crowdsale.
- * The process of issuing tokens is done by server application. Investors can not
+ * The process of issuing tokens is done by server application. Buyers can not
  * send ETH directly. They need to use one of the deposit wallets provided in KYC portal.
  */
 contract GifCrowdsale is Ownable {
@@ -65,8 +65,7 @@ contract GifCrowdsale is Ownable {
     }
 
     /**
-     * @dev Mint the tokens based on the amount provided and optional bonuses given.
-     * Used only by owner during the Pre-sale ICO phase.
+     * @dev (Pre-sale) Mint the tokens based on the amount provided and optional bonuses given.
      * @param beneficiary address Address to where the tokens shall be send to.
      * @param weiAmount uint256 Amount of wei the user sent.
      */
@@ -94,8 +93,7 @@ contract GifCrowdsale is Ownable {
     }
 
     /**
-     * @dev Mint the tokens based on the amount provided and optional bonuses and discount given.
-     * Used only by owner during the Pre-sale ICO phase.
+     * @dev (Crowdsale phase) Mint the tokens based on the amount provided and optional bonuses and discount given.
      * @param beneficiary address Address to where the tokens shall be send to.
      * @param weiAmount uint256 Amount of wei the user sent.
      */
