@@ -7,7 +7,7 @@ import expectThrow from 'zeppelin-solidity/test/helpers/expectThrow';
 
 const GifToken = artifacts.require('./GifToken.sol');
 
-contract('GifToken', function ([owner, wallet, investor]) {
+contract('GifToken', function ([owner, wallet]) {
 
     chai.use(chaiAsPromised);
     const assert = chai.assert;

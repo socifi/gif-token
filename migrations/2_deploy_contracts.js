@@ -8,13 +8,13 @@ module.exports = (deployer, network, accounts) => {
     const fromAddress = accounts[0];
 
     // NOTE: The month parameter is indexed from zero!
-    const icoEnd = new Date(Date.UTC(2018, 1, 13, 23, 59, 59));
+    const tgeEnd = new Date(Date.UTC(2018, 1, 13, 23, 59, 59));
 
     const rate = 97479;
 
     deployer.deploy(
         GifCrowdsale,
-        icoEnd.getTime() / 1000,
+        tgeEnd.getTime() / 1000,
         rate,
         {
             from: fromAddress,

@@ -9,7 +9,7 @@ import util from 'util';
 const GifToken = artifacts.require('./../GifToken.sol');
 const TokenVesting = artifacts.require('./../vesting/ThreeTimeVesting.sol');
 
-contract('FourTimeVesting', function ([owner, wallet, investor]) {
+contract('FourTimeVesting', function ([owner, wallet, buyer]) {
 
     chai.use(chaiAsPromised);
     const assert = chai.assert;
@@ -24,7 +24,7 @@ contract('FourTimeVesting', function ([owner, wallet, investor]) {
         token = await GifToken.new();
         start = latestTime() + duration.minutes(1); // +1 minute so it starts after contract instantiation
         tokenVesting = await TokenVesting.new(token.address, start);
-        await tokenVesting.addVested(investor, vestedAmount);
+        await tokenVesting.addVested(buyer, vestedAmount);
         await token.mint(tokenVesting.address, vestedAmount);
     });
 
@@ -44,7 +44,7 @@ contract('FourTimeVesting', function ([owner, wallet, investor]) {
             util.format('should have %i%% of tokens available after %i days', data[1] * 100, data[0]),
             async () => {
                 await increaseTimeTo(start + duration.days(data[0]));
-                const result = await tokenVesting.releasableAmount.call(investor);
+                const result = await tokenVesting.releasableAmount.call(buyer);
                 assert.equal(result, expectedTokens, util.format(
                     'Expected %s tokens to be available. %s given. ',
                     expectedTokens,

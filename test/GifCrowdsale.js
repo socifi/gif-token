@@ -13,7 +13,7 @@ const PreSaleVesting = artifacts.require('./vesting/PreSaleVesting.sol');
 const FourTimeVesting = artifacts.require('./vesting/FourTimeVesting.sol');
 const ThreeTimeVesting = artifacts.require('./vesting/ThreeTimeVesting.sol');
 
-contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, gifFoundation]) {
+contract('GifCrowdsale', function ([owner, wallet, buyer, socifi, socifiOps, gifFoundation]) {
 
     chai.use(chaiAsPromised);
     const assert = chai.assert;
@@ -49,15 +49,15 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
 
     it ('should respect pre-sale tokens cap', async () => {
         const preSaleCap = ether(1015447128);
-        await crowdsale.giveTokensPreSale(investor, preSaleCap.div(1.35).div(rate));
-        assert.equal(await tokenVesting.vested.call(investor), preSaleCap.toNumber());
+        await crowdsale.giveTokensPreSale(buyer, preSaleCap.div(1.35).div(rate));
+        assert.equal(await tokenVesting.vested.call(buyer), preSaleCap.toNumber());
     });
 
-    describe('presale investments', async () => {
+    describe('presale purchase', async () => {
         it('should sale tokens with discount', async () => {
             const investment = ether(1);
-            await crowdsale.giveTokensPreSale(investor, investment);
-            assert.equal(await tokenVesting.vested.call(investor), ether(131596.65).toNumber());
+            await crowdsale.giveTokensPreSale(buyer, investment);
+            assert.equal(await tokenVesting.vested.call(buyer), ether(131596.65).toNumber());
         });
     });
 
@@ -68,7 +68,7 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
         const expectedTokens = invested.mul(rate * preSaleBonus);
 
         beforeEach(async function () {
-            result = await crowdsale.giveTokensPreSale(investor, invested);
+            result = await crowdsale.giveTokensPreSale(buyer, invested);
         });
 
         it ('should purchase tokens', async () => {
@@ -79,26 +79,26 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
             assert.equal(await crowdsale.preSaleTokensSold.call(), expectedTokens.toNumber());
         });
 
-        it ('should set vested amount for investor', async () => {
-            assert.equal(await tokenVesting.vested.call(investor), expectedTokens.toNumber());
+        it ('should set vested amount for buyer', async () => {
+            assert.equal(await tokenVesting.vested.call(buyer), expectedTokens.toNumber());
         });
 
         it ('should return no releasable amount', async () => {
-            assert.equal(await tokenVesting.releasableAmount.call(investor), 0);
+            assert.equal(await tokenVesting.releasableAmount.call(buyer), 0);
         });
 
         it ('should fail releasing tokens', async () => {
-            await expectThrow(tokenVesting.release({from: investor}));
+            await expectThrow(tokenVesting.release({from: buyer}));
         });
 
         it ('should return releasable amount after 6 months', async () => {
             await increaseTimeTo(end + duration.days(6 * 30));
-            assert.equal(await tokenVesting.releasableAmount.call(investor), expectedTokens.toNumber());
+            assert.equal(await tokenVesting.releasableAmount.call(buyer), expectedTokens.toNumber());
         });
 
         it ('should release tokens after 6 months', async () => {
             await increaseTimeTo(end + duration.days(6 * 30));
-            const result = await tokenVesting.release({from: investor});
+            const result = await tokenVesting.release({from: buyer});
             assert.equal(result.logs[0].event, 'Released');
         });
     });
@@ -109,7 +109,7 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
         const expectedTokens = invested.mul(rate);
 
         beforeEach(async function () {
-            result = await crowdsale.giveTokens(investor, invested);
+            result = await crowdsale.giveTokens(buyer, invested);
         });
 
         it ('should purchase tokens', async () => {
@@ -120,8 +120,8 @@ contract('GifCrowdsale', function ([owner, wallet, investor, socifi, socifiOps, 
             assert.equal(await crowdsale.crowdsaleTokensSold.call(), expectedTokens.toNumber());
         });
 
-        it ('investor should own the tokens', async () => {
-            assert.equal(await token.balanceOf.call(investor), expectedTokens.toNumber());
+        it ('buyer should own the tokens', async () => {
+            assert.equal(await token.balanceOf.call(buyer), expectedTokens.toNumber());
         });
     });
 

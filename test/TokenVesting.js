@@ -8,7 +8,7 @@ import latestTime from 'zeppelin-solidity/test/helpers/latestTime';
 const GifToken = artifacts.require('./GifToken.sol');
 const TokenVesting = artifacts.require('./mocks/TokenVestingMock.sol');
 
-contract('TokenVesting', function ([owner, wallet, investor]) {
+contract('TokenVesting', function ([owner, wallet, buyer]) {
 
     chai.use(chaiAsPromised);
     const assert = chai.assert;
@@ -33,7 +33,7 @@ contract('TokenVesting', function ([owner, wallet, investor]) {
     describe('release', async () => {
         describe('failed', async () => {
             it('should fail when no releasable tokens available', async () => {
-                await expectThrow(tokenVesting.release({from: investor}));
+                await expectThrow(tokenVesting.release({from: buyer}));
             });
         });
 
@@ -42,20 +42,20 @@ contract('TokenVesting', function ([owner, wallet, investor]) {
             const vestedAmount = 1337;
 
             beforeEach(async function () {
-                await tokenVesting.addVested(investor, vestedAmount);
+                await tokenVesting.addVested(buyer, vestedAmount);
                 await token.mint(tokenVesting.address, vestedAmount);
             });
 
-            it('investor should have vested tokens available for released', async () => {
-                assert.equal(await tokenVesting.vested.call(investor), vestedAmount);
+            it('buyer should have vested tokens available for released', async () => {
+                assert.equal(await tokenVesting.vested.call(buyer), vestedAmount);
             });
 
             it('proper amount of releasable tokens should be calculated', async () => {
-                assert.equal(await tokenVesting.releasableAmount.call(investor), vestedAmount);
+                assert.equal(await tokenVesting.releasableAmount.call(buyer), vestedAmount);
             });
 
             it('should release tokens', async () => {
-                const result = await tokenVesting.release({from: investor});
+                const result = await tokenVesting.release({from: buyer});
                 assert.equal(result.logs[0].event, 'Released');
             });
         });

@@ -19,9 +19,8 @@ in most Ethereum related applications.
 
 ### <a name="crowdsale"></a> Crowdsale
 Crowdsale contract located in [`GifCrowdsale.sol`](../contracts/GifCrowdsale.sol)
-is used for the SOCIFI ICO. It handles the investment process (buying tokens +
-giving the bonus tokens), distributing tokens and their vesting, initial splitting between SOCIFI Team,
-SOCIFI Ops, GIF Foundation, and Investors.
+is used for the SOCIFI GIF TGE. It handles the purchase process (buying tokens), distributing tokens and their vesting, initial splitting between SOCIFI Team,
+SOCIFI Ops, GIF Foundation, and Buyers.
 
 ### <a name="vesting"></a> Vesting
 To allow vesting of the tokens, we implemented three vesting contracts.
@@ -37,6 +36,6 @@ When the tokens are purchased during the Pre-sale, or when the tokens are split 
 mentioned subjects, the tokens are minted to address of the corresponding contract
 and vesting rights are saved in the same contract.
 
-Once the vesting time defined in the WhitePaper pass, the investor/subject can call
+Once the vesting time defined in the WhitePaper pass, the buyer/subject can call
 the `release()` function of the corresponding contract and release the (part of the)
 vested tokens to their original address.
